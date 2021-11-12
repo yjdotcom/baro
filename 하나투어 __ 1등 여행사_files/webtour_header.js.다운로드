@@ -1,0 +1,1369 @@
+'use strict';
+
+var _typeof =
+  typeof Symbol === 'function' && typeof Symbol.iterator === 'symbol'
+    ? function(obj) {
+        return typeof obj
+      }
+    : function(obj) {
+        return obj &&
+          typeof Symbol === 'function' &&
+          obj.constructor === Symbol &&
+          obj !== Symbol.prototype
+          ? 'symbol'
+          : typeof obj
+      }
+
+document.domain = 'hanatour.com' //김광식 차장님 요청으로 추가
+
+var referrer = document.referrer
+// var referrer = 'http://devc90100s010.hanatour.com';
+var afcnUseYn = 'N'
+var cSiteCd = getCookie('c_siteCd')
+var afcnSiteCd = ''
+
+console.log('>>>>>>>>>>>>>> cSiteCd : ' + cSiteCd)
+console.log('>>>>>>>>>>>>>> before referrer ' + referrer)
+
+if (cSiteCd != null && cSiteCd != undefined && cSiteCd != '') {
+  afcnUseYn = 'Y'
+  afcnSiteCd = cSiteCd
+} else if (
+  referrer != null &&
+  referrer != undefined &&
+  referrer != '' &&
+  referrer.indexOf('www.hanatour.com') === -1 &&
+  referrer.indexOf('devtour.hanatour.com') === -1 &&
+  referrer.indexOf('stgtour.hanatour.com') === -1 &&
+  referrer.indexOf('m.hanatour.com') === -1 &&
+  referrer.indexOf('mdevtour.hanatour.com') === -1 &&
+  referrer.indexOf('mstgtour.hanatour.com') === -1 &&
+  referrer.indexOf('wtdom2.hanatour.com') === -1 &&
+  referrer.indexOf('dev-user.hanatour.com') === -1 &&
+  referrer.indexOf('dev-seller.hanatour.com') === -1 &&
+  referrer.indexOf('dev-manager.hanatour.com') === -1 &&
+  referrer.indexOf('fnd.hanatour.com') === -1 &&
+  referrer.indexOf('fndseller.hanatour.com') === -1 &&
+  referrer.indexOf('fndmanager.hanatour.com') === -1 &&
+  referrer.indexOf('qa-user.hanatour.com') === -1 &&
+  referrer.indexOf('qa-user-mobile.hanatour.com') === -1 &&
+  referrer.indexOf('qa-seller.hanatour.com') === -1 &&
+  referrer.indexOf('qa-manager.hanatour.com') === -1 &&
+  referrer.indexOf('tms.hanatour.com') === -1 &&
+  referrer.includes('.hanatour.com')
+) {
+  afcnUseYn = 'Y'
+  referrer = referrer.split('/')[2]
+}
+
+console.log('>>>>>>>>>>>>>> afcnUseYn ' + afcnUseYn)
+console.log('>>>>>>>>>>>>>> after referrer ' + referrer)
+
+var getCookie = function getCookie(name) {
+  var value = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)')
+  return value ? value[2] : null
+}
+
+/**
+ * 사용자 로그인 이후 검색어를 관리하기 위한 개인구별 값.
+ */
+if (wt_hnt_uid === undefined) {
+  var wt_hnt_uid = ''
+}
+// wt_hnt_uid = "zJlhj45X3Fj7vGFfL2JRsBdXvyVxgKwvZRRKK2y6j4lyOxRlAAeOh1rnrluFio86";
+
+/**
+ * 웹투어/여행정보에서 전달해줘야할 값으로 동작중인 서버가 운영/비운영인지 구분할 값이다.
+ */
+if (wt_serv_env === undefined) {
+  var wt_serv_env = '!prd'
+}
+
+// wt_serv_env 안넣어줄 경우 강제적으로 설정
+// wt_serv_env = "prd";
+
+/**
+ * dotCom을 바라볼 주소를 결정한다..
+ */
+var getDotComUrl = function getDotComUrl(env, device) {
+  console.log('getDotComUrl > location.href:', location.href)
+  var result = {
+    api: '',
+    domain: ''
+  }
+  var _device = device === 'pc' ? '' : 'm'
+
+  var _urls = {
+    local: {
+      api: 'https://devapi.hanatour.com',
+      domain: location.protocol + '//' + location.host
+    },
+    dev: {
+      api: 'https://devapi.hanatour.com',
+      domain: 'https://' + _device + 'devtour.hanatour.com'
+    },
+    stg: {
+      api: 'https://stgapi.hanatour.com',
+      domain: 'https://' + _device + 'stgtour.hanatour.com'
+    },
+    tstg: {
+      api: 'https://stgapi.hanatour.com',
+      domain: 'https://t' + _device + 'stgtour.hanatour.com'
+    },
+    www2: {
+      api: 'https://api.hanatour.com',
+      domain: 'https://' + (_device === '' ? 'www' : _device) + '2.hanatour.com'
+    }
+
+    //닷컴개발자 환경이면
+  }
+  var hrefs = ['local', 'stg', 'tstg', 'dev', 'www2', 'qa-']
+  for (var i = 0; i < hrefs.length; i++) {
+    if (location.href.indexOf(hrefs[i]) !== -1) {
+      if (hrefs[i] === 'dev') {
+        if (location.href.indexOf('devtour') !== -1) {
+          result.api = _urls[hrefs[i]].api
+          result.domain = _urls[hrefs[i]].domain
+        } else {
+          result.api = _urls.stg.api
+          result.domain = _urls.stg.domain
+        }
+      } else if (hrefs[i] === 'qa-') {
+        //qa
+        result.api = _urls.stg.api
+        result.domain = _urls.stg.domain
+      } else {
+        result.api = _urls[hrefs[i]].api
+        result.domain = _urls[hrefs[i]].domain
+      }
+      break
+    }
+  }
+
+  if (result.api === '') {
+    //닷컴개발자 환경이 아니면
+    if (env === 'prd') {
+      //운영이면
+      result.api = 'https://api.hanatour.com' //api
+      result.domain = 'https://www.hanatour.com' //링크연결 도메인
+    } else {
+      //운영이 아니면
+      result.api = 'https://stgapi.hanatour.com' //api
+      result.domain = 'https://stgtour.hanatour.com' //링크연결 도메인
+    }
+  }
+
+  if (location.href.indexOf('local.hanatour.com') > -1) {
+    result.api = 'https://devapi.hanatour.com' //api
+    result.domain = 'http://local.hanatour.com:9000' //링크연결 도메인
+    return result
+  }
+
+  return result
+}
+var wtDotComUrl = getDotComUrl(wt_serv_env, 'pc')
+
+console.log('wt_serv_env:', wt_serv_env, wtDotComUrl)
+
+var apiUrl = wtDotComUrl.api //api 서버
+var webtourDomain = wtDotComUrl.domain //링크 동작될 도메인
+var imageDomain = webtourDomain
+//var imageDomain = "https://devimage.hanatour.com"
+var webtourView = location.href.indexOf('info.hanatour.com') === -1 //웹투어인지 여행정보인지 판별
+var webtourSiteId = 'hanatour' //siteId
+
+var myName = ''
+var myMileage = 0
+var myCupon = 0
+
+/**
+ * cookie값이 true면 로그인된 상태
+ * cookie값이 false이거나 값이 없으면 로그아웃된 상태
+ */
+var _wtLogin = (function(key) {
+  var _cookie = key + '='
+  var cookies = document.cookie.split(';')
+
+  for (var i = 0; i < cookies.length; i++) {
+    cookies[i] = cookies[i].replace(/^\s*|\s*$/g, '')
+
+    if (cookies[i].indexOf(_cookie) !== -1) {
+      return cookies[i].slice(_cookie.length, cookies[i].length)
+    }
+  }
+  return ''
+})('wtLogin')
+
+// let isLoginFromHanatour = _wtLogin === '' ? false : _wtLogin === 'true'
+// let isLoginFromHanatour = wt_hnt_uid !== ''; //하나투어로부터 로그인 했는지 판별
+var isLoginFromHanatour =
+  getCookie('hnt_uid') !== null && getCookie('hnt_uid') !== '' ? true : false
+
+/**
+ * PC footer에서만 사용하는 기능
+ */
+function changeFooterSelect(obj) {
+  if (obj.value !== '') {
+    window.open(obj.value, '_blank')
+  }
+}
+
+function openLink(url) {
+  window.open(url, '', 'width=200, height=200')
+}
+
+function webtourRedirect(url) {
+  console.log('login url : ' + url)
+  return url + '?redirectUri=' + encodeURIComponent(location.href)
+}
+
+function webtourRedirectPopup(url) {
+  return url + '?redirectUri=' + encodeURIComponent(location.href)
+}
+
+function wtLogout() {
+  location.href =
+    wtDotComUrl.domain + '/com/lgi/logout?redirectUri=' + encodeURIComponent(location.href)
+  /* wtjs.ajax(`${apiUrl}/svc/signOut`, { credentials: true }, function (data) {
+  console.log(data)
+  if (localStorage) {
+  	localStorage.removeItem('redirectUri')
+  	localStorage.removeItem('siteId')
+  }
+  		document.cookie =
+  	'wtLogin=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.hanatour.com'
+  //TODO: 여기에서 wt_hnt_uid 값을 초기화해야 할 수도 있음.
+  //location.reload()
+  }) */
+}
+
+function getCookie(name) {
+  var value = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)')
+  return value ? value[2] : null
+}
+
+function logInOut(status) {
+  var token = getCookie('hnt_uid')
+  console.log('token:', token)
+  console.log('location.href:', location.href)
+
+  if (token !== null) {
+    // (status)
+    return '<li><a href="#" onclick=\'wtLogout()\'>\uB85C\uADF8\uC544\uC6C3</a></li>'
+  } else {
+    if (
+      location.href.indexOf('wtdom') !== -1 ||
+      location.href.indexOf('info.') !== -1 ||
+      location.href.indexOf('fnd.') !== -1
+    ) {
+      // 웹투어, 여행정보, 모하지만 새창 처리
+      return (
+        '<li><a href="#none" onclick="window.open(\'' +
+        webtourRedirect(webtourDomain + URLS['로그인']) +
+        "&siteId=01', '_blank', 'width=800, height=674')\">\uB85C\uADF8\uC778</a></li>"
+      )
+    } else {
+      return (
+        '<li><a href="' +
+        webtourRedirect(webtourDomain + URLS['로그인']) +
+        '&siteId=01">\uB85C\uADF8\uC778</a></li>'
+      )
+    }
+  }
+}
+
+function logInOut2(status) {
+  var token = getCookie('hnt_uid')
+  console.log('token:', token)
+  console.log('location.href:', location.href)
+
+  if (token !== null) {
+    // (status)
+    return (
+      '<a href="' +
+      webtourRedirect(webtourDomain + URLS['로그아웃']) +
+      '&siteId=01">\uB85C\uADF8\uC544\uC6C3</a>'
+    )
+  } else {
+    if (
+      location.href.indexOf('wtdom') !== -1 ||
+      location.href.indexOf('info.') !== -1 ||
+      location.href.indexOf('fnd.') !== -1
+    ) {
+      // 웹투어, 여행정보, 모하지만 새창 처리
+      return (
+        '<a href="#none" onclick="window.open(\'' +
+        webtourRedirect(webtourDomain + URLS['로그인']) +
+        "&siteId=01', '_blank', 'width=800, height=674')\" class=\"btn em\">\uB85C\uADF8\uC778</a>"
+      )
+    } else {
+      return (
+        '<a href="' +
+        webtourRedirect(webtourDomain + URLS['로그인']) +
+        '&siteId=01" class="btn em">\uB85C\uADF8\uC778</a>'
+      )
+    }
+  }
+}
+
+function memberJoin(status) {
+  var token = getCookie('hnt_uid')
+  console.log('token:', token)
+
+  if (token !== null) {
+    // (status)
+    return ''
+  } else {
+    return (
+      '<li><a href="' + webtourDomain + URLS['회원가입'] + '">\uD68C\uC6D0\uAC00\uC785</a></li>'
+    )
+  }
+}
+
+/**
+ * json 구조로 메뉴를 구성한다.
+ */
+var jsonize = function jsonize(data) {
+  var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {}
+
+  var result = {
+    name: data.menuNm || '',
+    url: data.urlAdrs || '',
+    id: data.menuId || ''
+  }
+
+  for (var key in options) {
+    result[key] = options[key]
+  }
+
+  return result
+} //end: var jsonize = function(data, options){
+
+function go(path) {
+  if (path.indexOf('http') !== -1) {
+    location.href = path
+  } else {
+    location.href = webtourDomain + path
+  }
+}
+
+/**
+메뉴 조회
+*/
+var MENU = {
+  /**
+   * 메뉴 재조립 시작
+   */
+  fetchApi: function fetchApi(menuObjId) {
+    // @hslee : referrer별 헤더 메뉴(카테고리) 목록을 불러오는 API로 추정한다. referrer가 정확하지 않을 경우 에러가 응답되기 때문에 예외처리를 추가
+    var resultServiceMenuData = null;
+    try {
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', apiUrl + '/open/smgSmmApiCategory/getListStmAfcnExhtMenuMServiceOpenApi?_siteId=' + webtourSiteId + '&chnlCd=WTP&afcnUseYn=' + wtjs.afcnUseYn + '&menuObjId=' + menuObjId + '&referrerUrl=' + wtjs.referrer + '&afcnSiteCd=' + wtjs.afcnSiteCd, false);
+      xhr.send();
+      resultServiceMenuData = JSON.parse(xhr.response);
+    } catch (e) {
+      console.log(e);
+    }
+    return resultServiceMenuData && resultServiceMenuData.getListStmAfcnExhtMenuMServiceConfig && resultServiceMenuData.getListStmAfcnExhtMenuMServiceConfig.stmAfcnExhtMenuMList;
+  },
+  getAll: function getAll() {
+    var xhr = new XMLHttpRequest()
+
+    // xhr.open('GET', `http://api.hanatour.com:8080/open/smgSmmApiCategory/getListStmAfcnExhtMenuMServiceOpenApi?_siteId=${webtourSiteId}&chnlCd=WTP&afcnUseYn=${afcnUseYn}&menuObjId=ALL&referrerUrl=${referrer}`,false);
+    xhr.open(
+      'GET',
+      apiUrl +
+        '/open/smgSmmApiCategory/getListStmAfcnExhtMenuMServiceOpenApi?_siteId=' +
+        webtourSiteId +
+        '&chnlCd=WTP&afcnUseYn=' +
+        afcnUseYn +
+        '&menuObjId=ALL&referrerUrl=' +
+        referrer +
+        '&afcnSiteCd=' +
+        afcnSiteCd,
+      false
+    )
+    xhr.send()
+    var resulAlltData = JSON.parse(xhr.response)
+
+    return resulAlltData.getListStmAfcnExhtMenuMServiceConfig.stmAfcnExhtMenuMList[0].htmlCdCont
+  },
+  getGnb: function getGnb() {
+    var xhr = new XMLHttpRequest()
+
+    // xhr.open('GET', `http://api.hanatour.com:8080/open/smgSmmApiCategory/getListStmAfcnExhtMenuMServiceOpenApi?_siteId=${webtourSiteId}&chnlCd=WTP&afcnUseYn=${afcnUseYn}&menuObjId=GNB&referrerUrl=${referrer}`,false);
+    xhr.open(
+      'GET',
+      apiUrl +
+        '/open/smgSmmApiCategory/getListStmAfcnExhtMenuMServiceOpenApi?_siteId=' +
+        webtourSiteId +
+        '&chnlCd=WTP&afcnUseYn=' +
+        afcnUseYn +
+        '&menuObjId=GNB&referrerUrl=' +
+        referrer +
+        '&afcnSiteCd=' +
+        afcnSiteCd,
+      false
+    )
+    xhr.send()
+
+    var resultGnbData = JSON.parse(xhr.response)
+
+    return resultGnbData.getListStmAfcnExhtMenuMServiceConfig.stmAfcnExhtMenuMList[0].htmlCdCont
+  }
+}
+
+var wtjs = {
+  RECENTLY_COOKIE_NAME: 'CHPC0ITS0002M200',
+  MAX_COOKIE_SIZE: 10,
+  referrer: document.referrer,
+  afcnUseYn: 'N',
+  cSiteCd: '',
+  afcnSiteCd: '',
+  isLoginFromHanatour: false,
+  init: function init() {
+    /*
+    * @hslee 210817
+    * afcnUseYn, cSiteCd, afcnSiteCd
+    * 나는 이게 무슨 동작인지 알지 못한다.
+    * 다만 js 파일 최상단 전역에서 실행하던 것을 wtjs 내부로 편입
+    * */
+
+    document.domain = 'hanatour.com'; //김광식 차장님 요청으로 추가
+    var referrer = this.referrer;
+    // var referrer = 'http://devc90100s010.hanatour.com';
+
+    this.cSiteCd = this.getCookie('c_siteCd');
+    console.log('>>>>>>>>>>>>>> this.cSiteCd : ' + this.cSiteCd);
+    console.log('>>>>>>>>>>>>>> before referrer ' + referrer);
+
+    this.isLoginFromHanatour = !!this.getCookie('hnt_uid');
+
+    if (this.cSiteCd) {
+      this.afcnUseYn = 'Y';
+      this.afcnSiteCd = this.cSiteCd;
+    } else if (referrer && referrer.indexOf('www.hanatour.com') === -1 && referrer.indexOf('devtour.hanatour.com') === -1 && referrer.indexOf('stgtour.hanatour.com') === -1 && referrer.indexOf('m.hanatour.com') === -1 && referrer.indexOf('mdevtour.hanatour.com') === -1 && referrer.indexOf('mstgtour.hanatour.com') === -1 && referrer.indexOf('wtdom2.hanatour.com') === -1 && referrer.indexOf('dev-user.hanatour.com') === -1 && referrer.indexOf('dev-seller.hanatour.com') === -1 && referrer.indexOf('dev-manager.hanatour.com') === -1 && referrer.indexOf('fnd.hanatour.com') === -1 && referrer.indexOf('fndseller.hanatour.com') === -1 && referrer.indexOf('fndmanager.hanatour.com') === -1 && referrer.indexOf('qa-user.hanatour.com') === -1 && referrer.indexOf('qa-user-mobile.hanatour.com') === -1 && referrer.indexOf('qa-seller.hanatour.com') === -1 && referrer.indexOf('qa-manager.hanatour.com') === -1 && referrer.includes('.hanatour.com')) {
+      this.afcnUseYn = 'Y';
+      this.referrer = referrer.split('/')[2];
+    }
+
+    console.log('>>>>>>>>>>>>>> this.afcnUseYn ' + this.afcnUseYn);
+    console.log('>>>>>>>>>>>>>> after referrer ' + this.referrer);
+  },
+  setCookie: function setCookie(cookieName, cookieValue) {
+    var cookieText = cookieName + '=' + encodeURIComponent(cookieValue);
+
+    // $nuxt.$q.cookies.set() 의 expired : 10과 동일하게 처리하도록
+    function addDays(days) {
+      var result = new Date();
+      result.setDate(result.getDate() + days);
+      return result;
+    }
+    function getDomainForSharingCookies() {
+      var host = window.location.hostname;
+      return '.' + host.split('.').slice(-2).join('.');
+    }
+    cookieText += '; EXPIRES=' + addDays(10).toGMTString();
+    cookieText += '; PATH=/';
+    cookieText += '; DOMAIN=' + getDomainForSharingCookies();
+    document.cookie = cookieText;
+  },
+  getCookie: function getCookie(cookieName) {
+    var cookieValue = null;
+    if (document.cookie) {
+      var array = document.cookie.split(cookieName + '=');
+      if (array.length >= 2) {
+        var arraySub = array[1].split(';');
+        cookieValue = arraySub[0];
+      }
+    }
+
+    function isEncoded(value) {
+      return typeof value === 'string' && decodeURIComponent(value) !== value;
+    }
+    return isEncoded(cookieValue) ? decodeURIComponent(cookieValue) : cookieValue;
+  },
+  deleteCookie: function deleteCookie(cookieName) {
+    var temp = this.getCookie(cookieName);
+    if (temp) {
+      this.setCookie(cookieName, temp, new Date(1));
+    }
+  },
+  // https:// 로 테스트(스테이지. 데브, 운영에서 테스트 확인)
+  myinfo: function myinfo() {
+    if (isLoginFromHanatour === true) {
+      this.ajax(
+        apiUrl + '/auth/svc/jwt?_siteId=' + webtourSiteId,
+        { credentials: true, method: 'GET' },
+        function(data) {
+          console.log('jwt:', data)
+          if (data.item.customer !== undefined) {
+            $('#myName').text(data.item.customer.name)
+          }
+        }
+      )
+      this.ajax(
+        apiUrl + '/svc/comMpgAWApiCategory/getInfoMyMlgApi?_siteId=' + webtourSiteId,
+        { credentials: true, method: 'GET' },
+        function(data) {
+          console.log('getInfoMyMlgApi:', data)
+          if (data.bizResCd === '0000') {
+            var mileageFormat = wtjs.formatAmt(data.getInfoMyMlgConfig.presentPnt)
+            $('#myMileage').text(mileageFormat)
+          }
+        }
+      )
+      this.ajax(
+        apiUrl + '/svc/comMpgApiCategory/getInfoMyCntEtcApi?_siteId=' + webtourSiteId,
+        { credentials: true, method: 'GET' },
+        function(data) {
+          console.log('getInfoMyCntEtcApi:', data)
+          if (data.bizResCd === '0000') {
+            $('#myCupon').text(data.getInfoMyCntEtcConfig.cupnCnt)
+          }
+        }
+      )
+    }
+  },
+  formatAmt: function formatAmt(strAmt) {
+    strAmt = String(strAmt)
+
+    var formattedVal = ''
+    var val = (strAmt / 1).toFixed(0).replace('.', ',')
+    formattedVal = String(val)
+      .toString()
+      .replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+
+    return formattedVal
+  },
+
+  ui: {
+    autoSearch: function autoSearch(iconName, val) {
+      //iconNames: default/recom/pkg/air/htl/info/pos
+      return (
+        '<li>\n\t\t\t\t<span class="icn ' +
+        iconName +
+        '"></span>\n\t\t\t\t<a href="#">' +
+        val +
+        '</a>\n\t\t\t</li>'
+      )
+    },
+    getRecentlyKeywordHtml: function getRecentlyKeywordHtml(val) {
+      return (
+        '<li><a href="#" class="tit recent">' +
+        val +
+        '</a><a href="#" class="btn_del" onclick="wtjs.removeKeyword(\'' +
+        val +
+        '\')">\uAC80\uC0C9\uC5B4 \uC0AD\uC81C</a></li>'
+      )
+    }, //end: recentSearch: function(val) {
+    popularRolling: function popularRolling(idx, val) {
+      var i = idx + 1
+      return (
+        '\n\t\t\t\t<a href="#"  class="swiper-slide" style="height: 25px;">' + val + '</a>\n\t\t\t'
+      )
+    },
+    popularRollingAll: function popularRollingAll(idx, val) {
+      var i = idx + 1
+      return (
+        '\n\t\t\t\t<a href="' +
+        webtourDomain +
+        '/com/its/CHPC0ITS0002M200?keyword=' +
+        val +
+        '&forceSearch=N&keywordCateg=PS">' +
+        val +
+        '</a>\n\t\t\t'
+      )
+    },
+    popularSearch: function popularSearch(idx, val) {
+      var i = idx + 1
+      return (
+        '<li>\n\t\t\t\t<span class="num">' +
+        i +
+        '</span>\n\t\t\t\t<a href="#" class="tit popular">' +
+        val +
+        '</a>\n\t\t\t</li>'
+      )
+    }, //end: popularSearch: function(idx, val) {
+    recommendSearch: function recommendSearch() {
+      var type = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'c1'
+      var val = arguments[1]
+      var lnkSrwrNm = arguments[2]
+
+      return (
+        '<a href="#" class=\'' + type + ' recommend\' lnksrw="' + lnkSrwrNm + '">#' + val + '</a>'
+      )
+    },
+    dataNo: function dataNo(val) {
+      return (
+        '<div class="data_no">\n\t\t\t\t<div class="cont">\n\t\t\t\t\t<strong>' +
+        val +
+        '</strong>\n\t\t\t\t</div>\n\t\t\t</div>'
+      )
+    },
+    /**
+     * TODO: 토글메뉴와 관련되서 비정상 동작될 경우 여기를 찾아볼것.
+     * 상황에 따라서는 아래의 toggle 부분을 주석처리해야될 수도 있음.
+     */
+    toggleMenuAll: function toggleMenuAll(obj1, obj2) {
+      //obj1.classList.toggle("on")
+      //obj2.classList.toggle("on")
+    }
+  }, //end: ui: {
+  swipe: {
+    left: function left(wrapper, targets) {
+      var objs = wrapper.querySelectorAll(targets)
+      wrapper.appendChild(objs[0])
+    },
+    right: function right(wrapper, targets) {
+      var objs = wrapper.querySelectorAll(targets)
+      wrapper.insertBefore(objs[objs.length - 1], wrapper.firstChild)
+    },
+    up: function up(wrapper, targets) {
+      this.left(wrapper, targets)
+    },
+    down: function down(wrapper, targets) {
+      this.right(wrapper, targets)
+    },
+    upSlide: function upSlide(wrapper, targets, martop) {
+      var objs = wrapper.querySelectorAll(targets)
+      $(objs[0]).animate({ marginTop: martop }, 500, function() {
+        $(this).css({ marginTop: '0px' })
+        wrapper.appendChild(objs[0])
+      })
+    },
+    rightSlide: function rightSlide(wrapper, targets) {
+      var objs = wrapper.querySelectorAll(targets)
+      $(objs[1]).animate({ marginLeft: '-220px' }, 500, function() {
+        $(objs[0]).css({ marginLeft: '0px' })
+        wrapper.appendChild(objs[0])
+      })
+    },
+    leftSlide: function leftSlide(wrapper, targets) {
+      var objs = wrapper.querySelectorAll(targets)
+      $(objs[objs.length - 1]).css({ marginLeft: '-220px' })
+      wrapper.insertBefore(objs[objs.length - 1], wrapper.firstChild)
+
+      $(objs[0]).animate({ marginLeft: '0px' }, 500, function() {
+        // $(this).css({"marginLeft": "0px"})
+      })
+    }
+  },
+  //열기
+  clickSearch: function clickSearch(obj, obj1, obj2) {
+    var val = obj.value.replace(/^\s*|\s*$/g, '')
+    if (val.length > 0) {
+      //검색어 있으면
+      obj1.style.display = 'none'
+      obj2.style.display = 'block'
+    } else {
+      //검색어 없으면
+      obj1.style.display = 'block'
+      obj2.style.display = 'none'
+    }
+
+    window.addEventListener('mousedown', this.windowMouseDownEventListener)
+
+    this.drawRecentlyKeywords() //최근ajax
+    this.popularSearch(val) //인기ajax
+    this.recommendSearch(val) //추천ajax
+  },
+  //닫기
+  closeSearch: function closeSearch(obj) {
+    obj.style.display = 'none'
+    window.removeEventListener('mousedown', this.windowMouseDownEventListener)
+  },
+  windowMouseDownEventListener: function windowMouseDownEventListener(e) {
+    var chk = true
+    var mx = e.clientX,
+      my = e.clientY
+
+    var r = document.querySelector('div.keyword_collection').getBoundingClientRect()
+    var top = r.top,
+      left = r.left,
+      width = r.width,
+      height = r.height
+
+    var isContain = !!(mx >= left && mx <= left + width && my >= top && my <= top + height)
+
+    if (isContain && obj.style.display !== 'none') {
+      chk = false
+    }
+    if (chk) {
+      document.querySelector('div.keyword_collection').style.display = 'none'
+      window.removeEventListener('mousedown', this.windowMouseDownEventListener)
+    }
+  },
+
+  //자동완성ajax
+  autoSearch: function autoSearch(val, obj1, obj2) {
+    var _val = val.replace(/^\s*|\s*$/g, '')
+    if (_val.length > 0) {
+      //검색어 있으면
+      obj1.style.display = 'block'
+      obj2.style.display = 'none'
+    } else {
+      //검색어 없으면
+      obj1.style.display = 'none'
+      obj2.style.display = 'block'
+    }
+
+    var params = {
+      userMode: 'PC',
+      keyword: _val
+    }
+
+    this.ajax(
+      apiUrl + '/open/comItsApiCategory/getAtmtCmptTourApi?_siteId=' + webtourSiteId,
+      { params: params, credentials: true },
+      function(data) {
+        var str = ''
+
+        if (data.resultMessage === 'SUCCESS') {
+          var cmptConfig = data.getAtmtCmptConfig
+
+          var tripMap = cmptConfig.tripInfoMap || ''
+          if (tripMap !== '') {
+            str += wtjs.ui.autoSearch(
+              'pkg',
+              '<em>' + cmptConfig.keyword + '</em> \uD328\uD0A4\uC9C0 \uBAA8\uB450 \uBCF4\uAE30'
+            )
+            str += wtjs.ui.autoSearch(
+              'htl',
+              '<em>' + cmptConfig.keyword + '</em> \uD638\uD154 \uBAA8\uB450 \uBCF4\uAE30'
+            )
+            str += wtjs.ui.autoSearch(
+              'air',
+              '<em>' + cmptConfig.keyword + '</em> \uD56D\uACF5\uAD8C \uBAA8\uB450 \uBCF4\uAE30'
+            )
+            str += wtjs.ui.autoSearch(
+              'info',
+              '<em>' +
+                cmptConfig.keyword +
+                '</em> \uC5EC\uD589\uC815\uBCF4 \uBAA8\uB450 \uBCF4\uAE30'
+            )
+          }
+
+          var list2 = cmptConfig.packageList || ''
+          if (list2 !== '') {
+            for (var i = 0; i < list2.length; i++) {
+              str += wtjs.ui.autoSearch('pkg', list2[i].packageTitle)
+            }
+          }
+
+          var list3 = cmptConfig.hotelList || ''
+          if (list3 !== '') {
+            for (var _i = 0; _i < list3.length; _i++) {
+              str += wtjs.ui.autoSearch('htl', list3[_i].hotelTitle)
+            }
+          }
+
+          var list1 = cmptConfig.autoCompleteList || ''
+          if (list1 !== '') {
+            for (var _i2 = 0; _i2 < list1.length; _i2++) {
+              str += wtjs.ui.autoSearch('pos', list1[_i2])
+            }
+          }
+        } else {
+          str += wtjs.ui.dataNo('최근 검색어 내역이 없습니다.')
+        }
+
+        document.querySelector('ul.list_autocomplete').innerHTML = str
+      }
+    )
+  }, //end: autoSearch: function (val, obj1, obj2) {
+  drawRecentlyKeywords: function drawRecentlyKeywords() {
+    // [MGTT-1348]@hslee - 외부 헤더에서 최근 검색어를 쿠키로 관리
+    var recentlyKeywords = this.getCookie(this.RECENTLY_COOKIE_NAME);
+    recentlyKeywords = recentlyKeywords && JSON.parse(recentlyKeywords).reverse() || [];
+    var keywordsHtmlString = '';
+
+    if (recentlyKeywords.length > 0) {
+      if (recentlyKeywords.length > 0) {
+        for (var i = 0; i < recentlyKeywords.length; i++) {
+          keywordsHtmlString += wtjs.ui.getRecentlyKeywordHtml(recentlyKeywords[i]);
+        }
+      } else {
+        document.querySelector('.etc').style.display = 'none';
+        keywordsHtmlString += wtjs.ui.dataNo('최근 검색어 내역이 없습니다.');
+      }
+    } else {
+      document.querySelector('.etc').style.display = 'none';
+      keywordsHtmlString += wtjs.ui.dataNo('최근 검색어 내역이 없습니다.');
+    }
+
+    document.querySelector('ul.list_srchword.type').innerHTML = keywordsHtmlString;
+  },
+  removeKeyword: function removeKeyword() {
+    var val = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
+
+    // [MGTT-1348]@hslee - 외부 헤더에서 최근 검색어를 쿠키로 관리
+    var recentlyKeywords = this.getCookie(this.RECENTLY_COOKIE_NAME);
+    recentlyKeywords = recentlyKeywords && JSON.parse(recentlyKeywords) || [];
+
+    if (val) {
+      // 'DEL' 단품 삭제
+      if (recentlyKeywords.indexOf(val) > -1) {
+        recentlyKeywords = recentlyKeywords.filter(function (keyword) {
+          return keyword !== val;
+        });
+      }
+    } else {
+      // 'DELALL' 전체 삭제
+      recentlyKeywords = [];
+    }
+
+    this.setCookie(this.RECENTLY_COOKIE_NAME, JSON.stringify(recentlyKeywords));
+    this.drawRecentlyKeywords();
+  },
+  saveKeyword: function saveKeyword() {
+    var val = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
+    var callback = arguments[1];
+
+    // [MGTT-1348]@hslee - 외부 헤더에서 최근 검색어를 쿠키로 관리
+    if (!val) {
+      return false;
+    }
+
+    var recentlyKeywords = this.getCookie(this.RECENTLY_COOKIE_NAME);
+    recentlyKeywords = recentlyKeywords && JSON.parse(recentlyKeywords) || [];
+
+    // [QA-1433]@hslee - 외부헤더 최근 검색어 최대 갯수
+    if (recentlyKeywords.length >= this.MAX_COOKIE_SIZE) {
+      // [1,2,3,4,5,6,7,8,9,10, 11, 12] => [4,5,6,7,8,9,10, 11, 12]
+      recentlyKeywords = recentlyKeywords.splice(recentlyKeywords.length - this.MAX_COOKIE_SIZE + 1, this.MAX_COOKIE_SIZE);
+    }
+
+    // 기존 쿠키에 존재하는 키워드라면 삭제. 이후 다시 추가
+    if (recentlyKeywords.indexOf(val) > -1) {
+      recentlyKeywords.splice(recentlyKeywords.indexOf(val), 1);
+    }
+    recentlyKeywords.push(val);
+
+    this.setCookie(this.RECENTLY_COOKIE_NAME, JSON.stringify(recentlyKeywords));
+    callback && callback();
+  },
+  //인기롤링ajax
+  popularRolling: function popularRolling(val) {
+    var params = {
+      userMode: 'PC'
+    }
+    this.ajax(
+      apiUrl + '/open/comItsApiCategory/getPpltSrwrTourApi?_siteId=' + webtourSiteId,
+      { params: params, credentials: true },
+      function(data) {
+        var str = ''
+        var str2 = ''
+        var str2Res = ''
+
+        if (data.resultMessage === 'SUCCESS') {
+          var list = data.getPpltSrwrConfig.popularWord
+          if (list !== undefined) {
+            for (var i = 0; i < list.length; i++) {
+              str += wtjs.ui.popularRolling(i, list[i].keyword)
+              str2 += wtjs.ui.popularRollingAll(i, list[i].keyword)
+            }
+          }
+        }
+
+        str2Res = '<p class="tit">인기검색어</p>'
+        str2Res += str2
+
+        document.querySelector('div.rolling_wrap div.swiper-wrapper').innerHTML = str
+        document.querySelector('div.rolling_wrap_all').innerHTML = str2Res
+      }
+    )
+  },
+  //인기ajax
+  popularSearch: function popularSearch(val) {
+    var today = new Date()
+    var dd = today.getDate()
+
+    var mm = today.getMonth() + 1
+    var yyyy = today.getFullYear()
+    if (dd < 10) {
+      dd = '0' + dd
+    }
+    if (mm < 10) {
+      mm = '0' + mm
+    }
+    today = yyyy + '.' + mm + '.' + dd
+    document.querySelector('span.today').innerHTML = today + ' 기준'
+
+    var params = {
+      userMode: 'PC'
+    }
+    this.ajax(
+      apiUrl + '/open/comItsApiCategory/getPpltSrwrTourApi?_siteId=' + webtourSiteId,
+      { params: params, credentials: true },
+      function(data) {
+        var str = ''
+        console.log('인기검색어:', data)
+        if (data.resultMessage === 'SUCCESS') {
+          var list = data.getPpltSrwrConfig.popularWord
+          if (list !== undefined) {
+            if (list.length > 0) {
+              for (var i = 0; i < list.length; i++) {
+                str += wtjs.ui.popularSearch(i, list[i].keyword)
+              }
+            } else {
+              str += wtjs.ui.dataNo('인기 검색어 내역이 없습니다.')
+            }
+          } else {
+            str += wtjs.ui.dataNo('인기 검색어 내역이 없습니다.')
+          }
+        } else {
+          str += wtjs.ui.dataNo('인기 검색어 내역이 없습니다.')
+        }
+
+        document.querySelector('ol.list_srchword.type').innerHTML = str
+      }
+    )
+  }, //end: popularSearch: function (val) {
+  //추천ajax
+  recommendSearch: function recommendSearch(val) {
+    var getParams = '&srwrDvCd=SWD02&srwrExprDvCd=P&srwrNm=' //Pc,Mobile에 따라 구분필요
+    this.ajax(
+      apiUrl + '/open/comSrhApiCategory/getListSrhTourApi?_siteId=' + webtourSiteId + getParams,
+      { credentials: true, method: 'GET' },
+      function(data) {
+        /* data = {
+                  bizResCd: "0000",
+                  getListSrhConfig: {
+                      popularWordCount: 3306,
+                      srwrMgmtLst: [{ srwrNm: "방콕", rnum: 1, oppbYn: "Y", srwrSrn: "SW00400328", lnkUrlAdrs: null, lnkSrwrNm: "방콕" },
+                      { srwrNm: "하와이는 미국땅", rnum: 2, oppbYn: "Y", srwrSrn: "SW00400328", lnkUrlAdrs: null, lnkSrwrNm: "하와이" },
+                      { srwrNm: "대마도는 한국땅", rnum: 3, oppbYn: "Y", srwrSrn: "SW00400328", lnkUrlAdrs: null, lnkSrwrNm: "한국" },
+                      { srwrNm: "방콕땅", rnum: 4, oppbYn: "Y", srwrSrn: "SW00400328", lnkUrlAdrs: null, lnkSrwrNm: "방콕" },
+                      { srwrNm: "베트남땅", rnum: 5, oppbYn: "Y", srwrSrn: "SW00400328", lnkUrlAdrs: null, lnkSrwrNm: "베트남" }]
+                  },
+                  logKey: "20200420f2185a7c55e249a2b723719260d96ed8.001",
+                  result: "200",
+                  resultMessage: "SUCCESS"
+              } */
+
+        var str = ''
+        console.log('추천검색어:', data)
+        if (data.resultMessage === 'SUCCESS') {
+          var list = data.getListSrhConfig.srwrMgmtLst
+          if (list !== undefined) {
+            if (list.length > 0) {
+              for (var i = 0; i < list.length; i++) {
+                var cnum = 'c' + Math.floor(Math.random() * 5)
+                if (cnum === 'c0') cnum = 'c1'
+                str += wtjs.ui.recommendSearch(cnum, list[i].srwrNm, list[i].lnkSrwrNm)
+              }
+            } else {
+              document.querySelector('#rcmmPanel').style.display = 'none'
+            }
+          } else {
+            document.querySelector('#rcmmPanel').style.display = 'none'
+          }
+        } else {
+          document.querySelector('#rcmmPanel').style.display = 'none'
+          str += wtjs.ui.dataNo('추천 검색어 내역이 없습니다.')
+        }
+
+        document.querySelector('div.hash_group').innerHTML = str
+      }
+    )
+  }, //end: recommendSearch: function (val) {
+  // getMenu: function () {
+
+  // },
+  // getGnbHtml: function () {
+  // 	return this.gnb.menuGnbHtml;
+  // },
+  // getAllHtml: function () {
+  // 	return this.gnb.menuAllHtml;
+  // },
+  //ajax
+  ajax: function ajax(url) {
+    var data = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {}
+    var callback = arguments[2]
+
+    var xhr = new XMLHttpRequest()
+    var credentials =
+      (data.credentials || '') === '' ? false : data.credentials === false ? false : true
+    xhr.open((data.method || '') === '' ? 'POST' : data.method, url)
+    xhr.withCredentials = credentials
+    xhr.onload = function() {
+      callback(JSON.parse(xhr.response))
+    }
+    xhr.setRequestHeader('Accept', 'application/json, text/plain, */*')
+    xhr.setRequestHeader('prgmId', '/') // "EX00000001"
+    if (data.params !== undefined && _typeof(data.params) === 'object') {
+      xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8')
+    }
+    console.log(data.params)
+    console.log("JSON.stringify(data.params || '') >", JSON.stringify(data.params || ''))
+    xhr.send(JSON.stringify(data.params || ''))
+  },
+  gnb: {
+    menuGnbHtml: '',
+    menuAllHtml: '',
+    height: function height(isWebtour) {
+      return isWebtour ? '' : 'height: 116px;'
+    }, //end: height: function(isWebtour){
+    init: function init(isWebtour) {
+      if (!isWebtour) {
+        return ''
+      }
+
+      // wtjs.test();
+
+      // wtjs.getMenu();
+
+      var result =
+        '\n\t\t\t\t<div class="inr">\n\t\t\t\t<div class="gnb_menu_wrap">\n\t\t\t\t\t<div class="cont_left">\n\t\t\t\t\t\t<a href="#" class="btn_menu_all js_act" onclick="wtjs.ui.toggleMenuAll(this, document.querySelector(\'div.list_total_menu\'))">\uC804\uCCB4\uBA54\uB274</a>\n\t\t\t\t\t\t<div class="list_total_menu n_total">\n\t\t\t\t\t\t\t' +
+        MENU.getAll() +
+        '\n\t\t\t\t\t\t</div><!--//div.list_total_menu-->\n\t\t\t\t\t\t' +
+        MENU.getGnb() +
+        '\n\t\t\t\t\t</div><!--//div.cont_left-->\n\t\t\t\t\t<div class="cont_right">\n\t\t\t\t\t\t<ul class="list_special">\n\t\t\t\t\t\t\t<!--<li><a href="' +
+        webtourDomain +
+        URLS['퍼즐팩'] +
+        '">\uD37C\uC990\uD329</a></li>-->\n\t\t\t\t\t\t\t<li><a href="' +
+        webtourDomain +
+        URLS['여행기획전'] +
+        '">\uC5EC\uD589\uAE30\uD68D\uC804</a></li>\n\t\t\t\t\t\t\t<li><a href="' +
+        URLS['기업여행'] +
+        '" target="_blank">\uAE30\uC5C5\uC5EC\uD589</a></li>\n\t\t\t\t\t\t\t<li><!-- <a href="#" class="more js_act">\uB354\uBCF4\uAE30</a> --></li>\n\t\t\t\t\t\t</ul>\n\t\t\t\t\t\t<div class="list_special_more">\n\t\t\t\t\t\t\t<ul>\n\t\t\t\t\t\t\t\t<li><a href="' +
+        webtourDomain +
+        URLS['하나TV'] +
+        '">\uD558\uB098TV</a></li>\n\t\t\t\t\t\t\t\t<li><a href="' +
+        webtourDomain +
+        URLS['핫딜'] +
+        '">\uD56B\uB51C</a></li>\n\t\t\t\t\t\t\t\t<li><a href="' +
+        webtourDomain +
+        URLS['추천여행지'] +
+        '">\uCD94\uCC9C \uC5EC\uD589\uC9C0</a></li>\n\t\t\t\t\t\t\t</ul>\n\t\t\t\t\t\t\t<a href="#" class="cls js_act">\uB2EB\uAE30</a>\n\t\t\t\t\t\t</div>\n\t\t\t\t\t</div><!--//div.cont_right-->\n\t\t\t\t</div><!--//div.gnb_menu_wrap-->\n\t\t\t\t</div><!--//div.inr-->\n\t\t\t\t'
+      // console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ' + result);
+      return result
+    } //end: , init: function(isWebtour, datas){
+    //end: , gnb: {
+  } //end: var wtjs = {
+}
+var URLS = {
+  //Right Menu
+  할인쿠폰: '/mkt/cop/CHPC0cOP0001M200',
+  출발확정: '/mkt/fet/PL00095086',
+  여행기획전: '/mma/smn/EX00000023',
+  핫딜: '/mkt/fet/PL00095087',
+  추천여행지: '/mkt/fet/CHPC0FET0005M200',
+  하나TV: 'https://www.hanatour.com/mkt/fet/PL00095088',
+  퍼즐팩: '/mkt/fet/PL00095083',
+  기업여행: 'http://www.hanatrabiz.com',
+
+  //headers
+  셀리노화장품:
+    'http://www.hanatour.com/asp/promotion/autopromo/ap-20000.asp?promo_code=P16654&utm_source=hanatour&utm_medium=dotcom&utm_term=20190731&utm_content=main_link_service&utm_campaign=celonia_promo',
+  공연전시: 'http://ticket.hanatour.com/pages/urlauth/urlauth.aspx?tag=HNT',
+
+  하나투어: '/', // /mma/smn/EX00000001
+  마이페이지: '/com/mpg/CHPC0MPG0001M200',
+  로그인: '/com/lgi/CHPC0LGI0114M200',
+  // 로그인: '/com/lgi/CHPC0LGI0106M200',
+  로그아웃: '/com/lgi/logout',
+  회원가입: '/com/mbr/CHPC0MBR0001M200',
+  고객센터: '/com/cuc/CHPC0CUC0100M200',
+  찜: '/com/sbk/CHPC0COM0300M200',
+  참여내역: '/com/mpg/CHPC0MPG0400M200',
+  개인정보: '/com/mpg/CHPC0MPG0105M200',
+  예약내역: '/com/mpg/CHPC0MPG0200M200',
+  쿠폰: '/com/mpg/CHPC0MPG0600M200',
+  마일리지: '/com/mpg/CHPC0MPG0500M200',
+  상담: '/com/cuc/CHPC0CUC0002M200',
+
+  //SNS
+  facebook: 'https://www.facebook.com/HanaTour.fb',
+  instagram: 'https://www.instagram.com/hanatour_official',
+  blog: 'http://blog.hanatour.com/',
+  kakaoplus: 'https://pf.kakao.com/_ftrPI',
+  youtube: 'https://www.youtube.com/user/HanaTour',
+  kakaostory: 'https://story.kakao.com/#ch/hanatour',
+  //footer
+  회사소개: 'http://www.hanatourcompany.com/kor/main/main.asp?hanacode=main_bottom_01',
+  이용약관: '/els/prv/CHPC0PRV0004M200',
+  개인정보처리방침: '/els/prv/CHPC0PRV0002M200',
+  여행약관: '/els/prv/CHPC0PRV0003M200',
+  해외여행자보험: '/els/etc/CHPC0ETC0008M200',
+  마케팅제휴: '/els/etc/CHPC0ETC0001M200',
+  '공식인증예약센터 검색': '/els/etc/CHPC0ETC0004M200',
+  사업자정보확인: 'http://www.ftc.go.kr/info/bizinfo/communicationList.jsp',
+  travel_mark1: 'http://tourinfo.or.kr/standard/standard_01.asp',
+  travel_mark2: 'http://www.eprivacy.or.kr/seal/mark.jsp?mark=e&code=2019-R055',
+  travel_mark3: 'http://www.kca.go.kr/ccm/certSystemOutlineView.do',
+
+  //#footer_select01
+  F_S1_: '',
+  F_S1_USA: 'http://www.hanatour.us/?hanacode=main_bottom_network',
+  F_S1_CHINA: 'http://www.hanatour.cn/?hanacode=main_bottom_network',
+  F_S1_TAIWAN: 'http://www.hanatour.com.tw/?hanacode=main_bottom_network',
+  F_S1_JAPAN: 'http://www.hanatourjapan.jp/?hanacode=main_bottom_network',
+  F_S1_HONGKONG: 'http://www.hanatourhk.com/?hanacode=main_bottom_network',
+  F_S1_BANGKOK: 'http://www.hanatour.co.th/?hanacode=main_bottom_network',
+  F_S1_NewZealand: 'http://www.hanatour.co.nz/?hanacode=main_bottom_network',
+
+  //#footer_select02
+  F_S2_: '',
+  F_S2_기업사이트:
+    'http://www.hanatourcompany.com/kor/main/main.asp?hanacode=main_bottom_familysite',
+  F_S2_고려여행사: 'http://www.koreats.co.kr/?hanacode=main_bottom_familysite',
+  F_S2_투어팁스: 'http://www.tourtips.com/?hanacode=main_bottom_familysite',
+  F_S2_웹투어: 'http://www.webtour.com/?hanacode=main_bottom_familysite',
+  F_S2_SM면세점:
+    'http://www.hanatour.com/asp/weblog/FS_SMDF.html?hanacode=main_bottom_smdutyfreesite',
+  F_S2_하나투어ITC: 'http://www.hanatouritc.com/?hanacode=main_bottom_familysite',
+  F_S2_하나투어제주: 'http://www.jejuhanatour.com/?hanacode=main_bottom_familysite',
+  F_S2_하나투어비즈니스: 'http://www.hanatourbiz.com/?hanacode=main_bottom_familysite',
+  F_S2_하나투어유스: 'http://www.hanayouth.com/?hanacode=main_bottom_familysite',
+  F_S2_하나투어리스트: 'http://www.hanatourist.co.kr/app/default.asp',
+  F_S2_월디스투어: 'http://www.worldistour.com?hanacode=main_bottom_familysite',
+  F_S2_CJ월디스: 'http://cjworldis.com/?hanacode=main_bottom_familysite',
+  F_S2_하나샵: 'http://www.hanatour.com/asp/weblog/main/hshop.html?hanacode=main_bottom_familysite',
+  F_S2_투어마케팅코리아: 'http://www.rccl.kr/?hanacode=main_bottom_familysite',
+  F_S2_센터마크호텔: 'http://www.centermarkhotel.com/?hanacode=main_bottom_familysite',
+  F_S2_에이치엔티마케팅: 'http://www.hntmkt.com/?hanacode=main_bottom_familysite',
+  F_S2_공공연수: 'http://www.travel00.co.kr/?hanacode=main_bottom_familysite',
+  F_S2_넥스투어: 'http://www.nextour.co.kr/?hanacode=main_bottom_familysite',
+  F_S2_티마크호텔: 'http://www.tmarkhotel.com/?hanacode=main_bottom_familysite',
+  F_S2_하나티앤미디어: 'http://www.thetravellermagazine.co.kr/?hanacode=main_bottom_familysite',
+  F_S2_호텔앤에어닷컴: 'http://www.hotelnair.com/?hanacode=main_bottom_familysite' //end: var URLS = {
+
+};document.write('\n\t<link data-n-head="true" type="text/css" rel="stylesheet" href="' + webtourDomain + '/assets/css/pc/cp.css">\n\t<link data-n-head="true" type="text/css" rel="stylesheet" href="' + webtourDomain + '/assets/css/modules/swiper.css">\n\t<link data-n-head="true" type="text/css" rel="stylesheet" href="' + webtourDomain + '/assets/css/modules/jquery.sb.css">\n\n\t<script src="' + webtourDomain + '/fx/lib/webtour.total.min.js"></script>\n\t<script src="' + webtourDomain + '/fx/js/fx-jquery.js"></script>\n\t<script src="' + webtourDomain + '/fx/js/fx-ui-lib.js"></script>\n\t<script src="' + webtourDomain + '/fx/js/fx-ui-pc.js"></script>\n\n\t<script src="' + webtourDomain + '/fx/lib/jquery.sb.custom.js"></script>\n\n<div id="wrap">\n\t<div id="gnb_wrap" class="gnb_wrap" style="' + wtjs.gnb.height(webtourView) + '">\n\t\t<div class="inr">\n\t\t\t<div class="global_menu_wrap">\n\t\t\t\t<div class="fl">\n\t\t\t\t\t<!--\n\t\t\t\t\t<ul>\n\t\t\t\t\t\t<li><a href="' + URLS['SM면세점'] + '">SM\uBA74\uC138\uC810</a></li>\n\t\t\t\t\t\t<li><a href="' + URLS['티마크호텔'] + '">\uD2F0\uB9C8\uD06C\uD638\uD154</a></li>\n\t\t\t\t\t\t<li><a href="' + URLS['셀리노화장품'] + '">\uC140\uB9AC\uB178\uD654\uC7A5\uD488</a></li>\n\t\t\t\t\t\t<li><a href="' + URLS['공연전시'] + '">\uACF5\uC5F0\uC804\uC2DC</a></li>\n\t\t\t\t\t</ul>\n\t\t\t\t\t-->\n\t\t\t\t</div>\n\t\t\t\t<div class="fr">\n\t\t\t\t\t<ul>\n\t\t\t\t\t\t' + logInOut(isLoginFromHanatour) + '\n\t\t\t\t\t\t<!-- <li><a href="' + webtourRedirect(webtourDomain + URLS['마이페이지']) + '">\uB9C8\uC774\uD398\uC774\uC9C0</a></li> -->\n\t\t\t\t\t\t' + memberJoin(isLoginFromHanatour) + '\n\t\t\t\t\t\t<li><a href="' + webtourDomain + URLS['고객센터'] + '">\uACE0\uAC1D\uC13C\uD130</a></li>\n\t\t\t\t\t</ul>\n\t\t\t\t</div>\n\t\t\t</div>\n\t\t</div><!--//div.inr-->\n\t\t<div class="inr">\n\t\t\t<div class="local_menu_wrap">\n\t\t\t\t<div class="fl">\n\t\t\t\t\t<h1 class="logo"><a href="' + webtourDomain + URLS['하나투어'] + '">\uD558\uB098\uD22C\uC5B4</a></h1>\n\t\t\t\t\t<div class="searchform_com">\n\t\t\t\t\t\t<div class="box_search">\n\t\t\t\t\t\t\t<input type="text" class="input_keyword" value="" id="wtjs_search" title="\uAC80\uC0C9\uC5B4" placeholder="\uAC80\uC0C9\uC5B4\uB97C \uC785\uB825\uD574 \uC8FC\uC138\uC694" onkeyup="wtjs.autoSearch(this.value, document.querySelector(\'div.list_srchword_wrap.type\'), document.querySelector(\'div.keyword_collection\'))" onclick="wtjs.clickSearch(this, document.querySelector(\'div.keyword_collection\'), document.querySelector(\'div.list_srchword_wrap.type\'))" autocomplete="off"/>\n\t\t\t\t\t\t\t<button type="submit" class="btn_search"><span>\uAC80\uC0C9</span></button>\n\t\t\t\t\t\t</div>\n\n            \n            <div class="keyword_collection">\n              <div class="panels">\n                <div class="panel" id="rcmmPanel">\n                  <div class="head">\n                    <strong class="title">\uCD94\uCC9C \uAC80\uC0C9\uC5B4</strong>\n                  </div>\n                  <div class="hash_group">\n                  </div>\n                </div>\n                <div class="panel half">\n                  <div class="head">\n                    <strong class="title">\uCD5C\uADFC\uAC80\uC0C9\uC5B4</strong>\n                    <button type="button" class="etc">\uC804\uCCB4\uC0AD\uC81C</button>\n                  </div>\n                  <div class="list_srchword_wrap">\n                    <ul class="list_srchword type" id="list_srchword">\n                    </ul>\n                  </div>\n                </div>\n                <div class="panel half">\n                  <div class="head">\n                    <strong class="title">\uC778\uAE30\uAC80\uC0C9\uC5B4</strong>\n                    <span class="today etc">2021.05.15 \uAE30\uC900</span>\n                  </div>\n                  <div class="list_srchword_wrap">\n                    <ol class="list_srchword type">\n                    </ol>\n                  </div>\n                </div>\n              </div>\n\n              <div class="option_wrap">\n                <span class="right_cont">\n                  <a href="#" class="txt"  onclick="wtjs.closeSearch(document.querySelector(\'div.keyword_collection\'))">\uB2EB\uAE30</a>\n                </span>\n              </div>\n            </div><!--//div.keyword_collection-->\n\n\n\t\t\t\t\t\t<div class="list_srchword_wrap type">\n\t\t\t\t\t\t\t<ul class="list_autocomplete">\n\t\t\t\t\t\t\t</ul>\n\t\t\t\t\t\t\t<div class="option_wrap">\n\t\t\t\t\t\t\t\t<span class="right_cont">\n\t\t\t\t\t\t\t\t\t<a href="#" class="txt" onclick="wtjs.closeSearch(document.querySelector(\'div.list_srchword_wrap.type\'))">\uB2EB\uAE30</a>\n\t\t\t\t\t\t\t\t</span>\n\t\t\t\t\t\t\t</div>\n\t\t\t\t\t\t</div>\n\t\t\t\t\t</div>\n\n\t\t\t\t\t<div class="rolling_wrap swiper-container v-swiper2 swiper-container-initialized swiper-container-vertical">\n\t\t\t\t\t\t<div class="swiper-wrapper">\n\n\t\t\t\t\t\t</div>\n\t\t\t\t\t\t<span class="swiper-notification" aria-live="assertive" aria-atomic="true"></span>\n\t\t\t\t\t</div>\n\t\t\t\t\t<div class="rolling_wrap_all">\n\t\t\t\t\t\t\n\t\t\t\t\t</div>\n\n\t\t\t\t</div>\n\t\t\t\t<div class="fr">\n\t\t\t\t\t<div class="private_menu">\n\t\t\t\t\t\t<ul>\n\t\t\t\t\t\t\t<li>\n\t\t\t\t\t\t\t\t<a href="#" class="link_my">\uB9C8\uC774\uBA54\uB274</a>\n\t\t\t\t\t\t\t\t<div class="my_menu_wrap">\n\t\t\t\t\t\t\t\t\t<div class="inr" style="display: ' + (!isLoginFromHanatour ? 'block' : 'none') + '">\n\t\t\t\t\t\t\t\t\t\t<p class="tit">\uB9C8\uC774\uBA54\uB274\uB294<br><strong>\uD68C\uC6D0 \uC804\uC6A9</strong> \uBA54\uB274 \uC785\uB2C8\uB2E4.</p>\n\t\t\t\t\t\t\t\t\t\t<!--\n\t\t\t\t\t\t\t\t\t\t<a href="' + (webtourRedirect(webtourDomain + URLS[isLoginFromHanatour ? '로그아웃' : '로그인']) + '&siteId=01') + '" class="btn em">' + (isLoginFromHanatour ? '로그아웃' : '로그인') + '</a>\n-->\n\t\t\t\t\t\t\t\t\t\t' + logInOut2(isLoginFromHanatour) + '\n\t\t\t\t\t\t\t\t\t\t<a href="' + webtourDomain + URLS['회원가입'] + '" class="btn em">\uD68C\uC6D0\uAC00\uC785</a>\n\t\t\t\t\t\t\t\t\t</div>\n\t\t\t\t\t\t\t\t\t<div class="inr" style="display: ' + (isLoginFromHanatour ? 'block' : 'none') + '">\n\t\t\t\t\t\t\t\t\t\t<p class="tit"><strong id="myName">\uAE40\uD558\uB098</strong>\uB2D8, \uBC18\uAC11\uC2B5\uB2C8\uB2E4.</p>\n\t\t\t\t\t\t\t\t\t\t<ul>\n                      <li>\n                        <a href="' + webtourRedirect(webtourDomain + URLS['예약내역']) + '">\uC608\uC57D\uB0B4\uC5ED</a>\n                      </li>\n                      <li>\n                        <a href="' + webtourRedirect(webtourDomain + URLS['찜']) + '">\uCC1C</a>\n                      </li>\n                    </ul>\n\t\t\t\t\t\t\t\t\t\t<ul>\n\t\t\t\t\t\t\t\t\t\t\t<li><a href="' + webtourRedirect(webtourDomain + URLS['쿠폰']) + '">\uCFE0\uD3F0 (<em id="myCupon">3</em>)</a></li><!--//url_check-->\n\t\t\t\t\t\t\t\t\t\t\t<li><a href="' + webtourRedirect(webtourDomain + URLS['마일리지']) + '">\uB9C8\uC77C\uB9AC\uC9C0 <em class="mileage" id="myMileage">2,000</em></a></li><!--//url_check-->\n\t\t\t\t\t\t\t\t\t\t</ul>\n\t\t\t\t\t\t\t\t\t\t<ul>\n\t\t\t\t\t\t\t\t\t\t\t<li><a href="' + webtourRedirect(webtourDomain + URLS['마이페이지']) + '">\uB9C8\uC774\uD398\uC774\uC9C0</a></li>\n\t\t\t\t\t\t\t\t\t\t\t<li><a href="' + webtourDomain + URLS['참여내역'] + '">\uCC38\uC5EC\uB0B4\uC5ED</a></li>\n\t\t\t\t\t\t\t\t\t\t\t<li><a href="' + webtourDomain + URLS['상담'] + '">1:1 \uC0C1\uB2F4</a></li><!--//url_check-->\n\t\t\t\t\t\t\t\t\t\t\t<li><a href="' + webtourRedirect(webtourDomain + URLS['개인정보']) + '">\uAC1C\uC778\uC815\uBCF4\uBCC0\uACBD</a></li>\n\t\t\t\t\t\t\t\t\t\t</ul>\n\t\t\t\t\t\t\t\t\t</div><!--//div.inr-->\n\t\t\t\t\t\t\t\t</div>\n\t\t\t\t\t\t\t</li>\n\t\t\t\t\t\t\t<li><a href="' + webtourRedirect(webtourDomain + URLS['예약내역']) + '" class="link_reservation">\uC608\uC57D\uB0B4\uC5ED</a></li>\n\t\t\t\t\t\t\t<li><a href="' + webtourRedirect(webtourDomain + URLS['찜']) + '" class="link_choice">\uCC1C</a></li>\n\t\t\t\t\t\t</ul>\n\t\t\t\t\t</div>\n\t\t\t\t</div>\n\t\t\t</div>\n\t\t</div><!--//div.inr-->\n\t\t' + wtjs.gnb.init(webtourView) + '\n\t</div><!--//div#gnb_wrap-->\n</div><!-- //wrap -->\n');
+
+/*
+function getJwt() {
+  wtjs.ajax(`${apiUrl}/auth/svc/jwt?_siteId=hanatour`, {}, function(data) {
+    console.log('getJwt() > data:', data)
+  })
+}
+getJwt()
+*/
+
+$(function() {
+  /*
+  $("div.js_tabs.type2").on("click", "div.panels a", function (e) {
+  location.href = `${webtourDomain}/com/its/CHPC0ITS0002M200?keyword=${$(e.target).text()}&forceSearch=N`;
+  });
+  	$("#wtjs_search").keyup(e => {
+  if (e.keyCode === 13) {
+  	location.href = `${webtourDomain}/com/its/CHPC0ITS0002M200?keyword=${$(e.target).val()}&forceSearch=N`;
+  }
+  });
+  */
+
+  // 전체 메뉴안의 a 태그 클릭시 상위 이벤트때문에 메뉴 이동 안되는 에러로 인해 상위 이벤트 중지 시킴
+  $('.list_total_menu .ly_wrap a').click(function(e) {
+    e.stopPropagation()
+  })
+
+  wtjs.myinfo()
+})
+
+window.onload = function() {
+  wtjs.popularRolling() //인기롤링ajax
+
+  //최근(DS)/인기(PS)/추천(RK) 검색어 내의 결과를 클릭
+  document.querySelector('div.keyword_collection').addEventListener(
+    'click',
+    function(e) {
+      console.log('e.target:', e.target.className)
+
+      var kc = ''
+      if (e.target.className.indexOf('recent') !== -1) {
+        kc = 'RE'
+      } else if (e.target.className.indexOf('popular') !== -1) {
+        kc = 'PS'
+      } else if (e.target.className.indexOf('recommend') !== -1) {
+        kc = 'RK'
+      }
+
+      if (e.target.textContent === '인기 검색어' || e.target.textContent === '추천 검색어') {
+        document.querySelector('#btn_allDel').style.display = 'none'
+      } else if (e.target.textContent === '최근 검색어') {
+        document.querySelector('#btn_allDel').style.display = 'contents'
+      }
+
+      var text = ''
+      for (var target = e.target; target && target != this; target = target.parentNode) {
+        if (target.matches('div.panels a')) {
+          if (target.textContent !== '검색어 삭제' && target.textContent !== '닫기') {
+            text = target.textContent
+          }
+          break
+        }
+      }
+
+      text = text.replace('#', '')
+      if (text !== '') {
+        wtjs.saveKeyword(text, function(data) {
+          console.log('kc:', kc)
+
+          var lnksrw = e.target.attributes.lnksrw
+          if (lnksrw !== undefined) {
+            // 추천검색어 이면
+            console.log('e:', lnksrw.value)
+            location.href =
+              webtourDomain +
+              '/com/its/CHPC0ITS0002M200?keyword=' +
+              lnksrw.value +
+              '&forceSearch=N&keywordCateg=' +
+              kc
+          } else {
+            location.href =
+              webtourDomain +
+              '/com/its/CHPC0ITS0002M200?keyword=' +
+              text +
+              '&forceSearch=N&keywordCateg=' +
+              kc
+          }
+        })
+      }
+    },
+    false
+  )
+
+  //자동검색어 내의 결과를 클릭
+  document.querySelector('div.list_srchword_wrap.type').addEventListener(
+    'click',
+    function(e) {
+      var text = ''
+      for (var target = e.target; target && target != this; target = target.parentNode) {
+        if (target.matches('a')) {
+          text = target.textContent
+          break
+        }
+      }
+
+      if (text !== '') {
+        wtjs.saveKeyword(text, function(data) {
+          location.href =
+            webtourDomain +
+            '/com/its/CHPC0ITS0002M200?keyword=' +
+            text +
+            '&forceSearch=N&keywordCateg=DS'
+        })
+      }
+    },
+    false
+  )
+
+  //자동 검색시 엔터 입력되면
+  document.querySelector('#wtjs_search').addEventListener('keyup', function(e) {
+    if (e.keyCode === 13) {
+      var text = e.target.value
+
+      if (text !== '') {
+        wtjs.saveKeyword(text, function(data) {
+          location.href =
+            webtourDomain +
+            '/com/its/CHPC0ITS0002M200?keyword=' +
+            text +
+            '&forceSearch=N&keywordCateg=DS'
+        })
+      }
+    }
+  })
+
+  // 셀렉트박스 토글
+  $('.selectbox.items li').on('mouseover', function() {
+    $(this).addClass('hover')
+  })
+  $('.selectbox.items li').on('mouseout', function() {
+    $(this).removeClass('hover')
+  })
+  $('.selectbox.items li').on('click', function(e) {
+    e.stopPropagation()
+
+    $(this)
+      .closest('span.select_item')
+      .find('.sb.selectbox .text')[0].innerText = $(this).find('div.text')[0].innerText
+    $(this)
+      .siblings()
+      .removeClass('selected')
+    $(this).addClass('selected')
+    $(this)
+      .closest('ul')
+      .toggle(100)
+    $(this)
+      .closest('span.select_item')
+      .find('.sb.selectbox .display')
+      .removeClass('active')
+  })
+
+  /* $("#global_title").on("click", function(){
+  var selectDisplay = $("#global_select").css("display")
+  		if (selectDisplay === "none") {
+  	$(this).find("div.display").addClass("active")
+  } else {
+  	$(this).find("div.display").removeClass("active")
+  }
+  
+  $("#global_select").toggle(200)
+  })
+  	$("#family_title").on("click", function(){
+  var selectDisplay = $("#family_select").css("display")
+  		if (selectDisplay === "none") {
+  	$(this).find("div.display").addClass("active")
+  } else {
+  	$(this).find("div.display").removeClass("active")
+  }
+  
+  $("#family_select").toggle(200)
+  }) */
+
+  $('body').on('click', function() {
+    if ($('#family_select').css('display') === 'block') {
+      $('#family_select').toggle(100)
+      $('#family_title')
+        .find('div.display')
+        .removeClass('active')
+    } else if ($('#global_select').css('display') === 'block') {
+      $('#global_select').toggle(100)
+      $('#global_title')
+        .find('div.display')
+        .removeClass('active')
+    }
+  })
+
+  $('.sb.selectbox').on('click', function(e) {
+    e.stopPropagation()
+
+    var id =
+      $(this)
+        .attr('id')
+        .split('_')[0] + '_select'
+    console.log($(id))
+    var selectDisplay = $('#' + id).css('display')
+
+    if (selectDisplay === 'none') {
+      $(this)
+        .find('div.display')
+        .addClass('active')
+    } else {
+      $(this)
+        .find('div.display')
+        .removeClass('active')
+    }
+
+    if (id === 'global_select') {
+      if ($('#family_select').css('display') === 'block') {
+        $('#family_select').toggle(100)
+        $('#family_title')
+          .find('div.display')
+          .removeClass('active')
+      }
+    } else if (id === 'family_select') {
+      if ($('#global_select').css('display') === 'block') {
+        $('#global_select').toggle(100)
+        $('#global_title')
+          .find('div.display')
+          .removeClass('active')
+      }
+    }
+
+    $('#' + id).toggle(100);
+  });
+};
